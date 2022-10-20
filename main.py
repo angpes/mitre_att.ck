@@ -1,43 +1,6 @@
-import requests as req
 from requests.sessions import Session
-
 from bs4 import BeautifulSoup as BS
 import xlsxwriter
-
-session = Session()
-
-
-with open("tactics.csv", encoding="utf-8") as file:
-    lines = file.readlines()
-
-tactics = [
-           # 'reconnaissance',
-           # 'resource-development',
-           # 'initial-access',
-           # 'execution',
-           # 'persistence',
-           # 'privilege-escalation',
-           # 'defense-evasion',
-           # 'credential-access',
-           # 'discovery',
-           'lateral-movement',
-           'collection',
-           # 'command-and-control',
-           # 'exfiltration',
-           # 'impact'
-]
-
-data = []
-keys = ["tactic", "technique", "technique_id", "technique_name"]
-for line in lines[1:]:
-    data.append({keys[i]: line.split(",")[i] for i in range(4)})
-
-techniques = [d for d in data if "." not  in d["technique_id"]]
-subtechniques = [d for d in data if "." in d["technique_id"]]
-
-data_dicts = dict()
-for tactic in tactics:
-    data_dicts[tactic] = [d for d in subtechniques if d["tactic"] == tactic]
 
 
 def write_technique_url(worksheet, tid, idx):
@@ -67,9 +30,43 @@ def get_mitigations(stid, only_id=True):
         return ", ".join(mitigations)
 
 
+session = Session()
 
 
-workbook = xlsxwriter.Workbook('mitre_attck2.xlsx')
+with open("tactics.csv", encoding="utf-8") as file:
+    lines = file.readlines()
+
+tactics = ['reconnaissance',
+           'resource-development',
+           'initial-access',
+           'execution',
+           'persistence',
+           'privilege-escalation',
+           'defense-evasion',
+           'credential-access',
+           'discovery',
+           'lateral-movement',
+           'collection',
+           'command-and-control',
+           'exfiltration',
+           'impact']
+
+data = []
+keys = ["tactic", "technique", "technique_id", "technique_name"]
+for line in lines[1:]:
+    data.append({keys[i]: line.split(",")[i] for i in range(4)})
+
+techniques = [d for d in data if "." not  in d["technique_id"]]
+subtechniques = [d for d in data if "." in d["technique_id"]]
+
+data_dicts = dict()
+for tactic in tactics:
+    data_dicts[tactic] = [d for d in subtechniques if d["tactic"] == tactic]
+
+
+
+
+workbook = xlsxwriter.Workbook('mitre_attck.xlsx')
 
 headers = ["Technique and ID", "Sub-techniques", "Sub-technique ID", "Tools", "Mitigation ID"]
 
@@ -82,10 +79,6 @@ for tactic in tactics:
         t_and_id = [t for t in techniques if t["technique"] == technique["technique"]][0]["technique_name"].strip()
         write_technique_url(worksheet, t_and_id, i)
         write_subtechnique_url(worksheet, technique["technique_id"], technique["technique_name"], i)
-
-
-
-
 
 
 workbook.close()

@@ -1,20 +1,31 @@
+import requests as req
+from requests.sessions import Session
+
+from bs4 import BeautifulSoup as BS
+import xlsxwriter
+
+session = Session()
+
+
 with open("tactics.csv", encoding="utf-8") as file:
     lines = file.readlines()
 
-tactics = ['reconnaissance',
-           'resource-development',
-           'initial-access',
-           'execution',
-           'persistence',
-           'privilege-escalation',
-           'defense-evasion',
-           'credential-access',
-           'discovery',
-           'lateral-movement'
+tactics = [
+           # 'reconnaissance',
+           # 'resource-development',
+           # 'initial-access',
+           # 'execution',
+           # 'persistence',
+           # 'privilege-escalation',
+           # 'defense-evasion',
+           # 'credential-access',
+           # 'discovery',
+           'lateral-movement',
            'collection',
-           'command-and-control',
-           'exfiltration',
-           'impact']
+           # 'command-and-control',
+           # 'exfiltration',
+           # 'impact'
+]
 
 data = []
 keys = ["tactic", "technique", "technique_id", "technique_name"]
@@ -37,15 +48,28 @@ def write_technique_url(worksheet, tid, idx):
 def write_subtechnique_url(worksheet, stid, stname, idx):
     worksheet.write_url(idx + 2, 1,
                         url=f'https://attack.mitre.org/techniques/{stid.replace(".", "/")}',
-                        string=stid)
-    worksheet.write_url(idx + 2, 1,
+                        string=stname.split("(")[0].strip())
+    worksheet.write_url(idx + 2, 2,
                         url=f'https://attack.mitre.org/techniques/{stid.replace(".", "/")}',
-                        string=stname)
+                        string=stid)
+    mitigations = get_mitigations(stid)
+    worksheet.write(idx + 2, 4, mitigations)
 
 
-import xlsxwriter
+def get_mitigations(stid, only_id=True):
+    url = f'https://attack.mitre.org/techniques/{stid.replace(".", "/")}'
+    soup = BS(session.get(url).content, features="lxml")
+    hrefs = [a.get("href") for a in soup.findAll("a")]
+    mitigations = set([f"https://attack.mitre.org{h}" for h in hrefs if "mitigations/M" in h])
+    if only_id:
+        return ", ".join([m.split("/")[-1] for m in mitigations])
+    else:
+        return ", ".join(mitigations)
 
-workbook = xlsxwriter.Workbook('mitre_attck.xlsx')
+
+
+
+workbook = xlsxwriter.Workbook('mitre_attck2.xlsx')
 
 headers = ["Technique and ID", "Sub-techniques", "Sub-technique ID", "Tools", "Mitigation ID"]
 
@@ -59,9 +83,6 @@ for tactic in tactics:
         write_technique_url(worksheet, t_and_id, i)
         write_subtechnique_url(worksheet, technique["technique_id"], technique["technique_name"], i)
 
-        # worksheet.write(i+2, 1, technique["technique_name"])
-        # worksheet.write(i+2, 2, technique["technique_id"])
-        # worksheet.write(i+2, 4, technique["technique_name"])
 
 
 
